@@ -17,16 +17,22 @@ abstract class QueueNotificationDataSource {
 }
 
 class QueueNotificationDataSourceImpl implements QueueNotificationDataSource {
-  QueueNotificationDataSourceImpl({FirebaseMessaging? messaging})
-      : _messaging = messaging ?? FirebaseMessaging.instance;
+  QueueNotificationDataSourceImpl({
+    FirebaseMessaging Function()? messagingFactory,
+  }) : _messagingFactory = messagingFactory ?? _defaultMessagingFactory;
 
-  final FirebaseMessaging _messaging;
+  final FirebaseMessaging Function() _messagingFactory;
+
+  static FirebaseMessaging _defaultMessagingFactory() {
+    return FirebaseMessaging.instance;
+  }
 
   @override
   Future<void> initialize() async {
     try {
       await Firebase.initializeApp();
-      await _messaging.requestPermission(
+      final messaging = _messagingFactory();
+      await messaging.requestPermission(
         alert: true,
         badge: true,
         sound: true,
@@ -43,7 +49,8 @@ class QueueNotificationDataSourceImpl implements QueueNotificationDataSource {
   @override
   Future<void> subscribeToQueueTopic(String queueNumber) async {
     try {
-      await _messaging.subscribeToTopic('queue_$queueNumber');
+      final messaging = _messagingFactory();
+      await messaging.subscribeToTopic('queue_$queueNumber');
     } catch (_) {
       // Topic subscription remains optional until FCM is configured.
     }

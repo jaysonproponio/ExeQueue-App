@@ -12,7 +12,11 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   Bloc.observer = AppBlocObserver();
   await initDependencies();
-  await sl<InitializeNotifications>()(const NoParams());
+  try {
+    await sl<InitializeNotifications>()(const NoParams());
+  } catch (_) {
+    // Notification setup must never block the shell from rendering.
+  }
   runApp(const ExeQueueApp());
 }
 
