@@ -15,18 +15,32 @@
           Open the ExeQueue mobile app and scan this QR code to join the queue.
         </p>
 
+        <section
+          id="qrStatusMessage"
+          class="status-banner status-banner-info compact-banner"
+          aria-live="polite"
+        >
+          Preparing secure QR token...
+        </section>
+
         <div class="qr-frame">
-          <canvas id="qrCanvas" width="360" height="360"></canvas>
+          <img
+            id="qrImage"
+            alt="Queue join QR code"
+            width="360"
+            height="360"
+          />
+          <canvas id="qrCanvas" width="360" height="360" hidden></canvas>
         </div>
 
         <div class="token-row">
           <span>Current token</span>
-          <strong id="qrTokenValue">JOIN-A021-001</strong>
+          <strong id="qrTokenValue">Waiting for token</strong>
         </div>
 
         <div class="current-queue-card">
           <span>Current Queue</span>
-          <strong id="qrCurrentQueue">A021</strong>
+          <strong id="qrCurrentQueue">A000</strong>
         </div>
 
         <button id="refreshQrButton" class="secondary-btn">

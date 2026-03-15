@@ -9,7 +9,10 @@ import 'package:exequeue_mobile/features/queue/data/models/live_board_model.dart
 import 'package:exequeue_mobile/features/queue/data/models/queue_status_model.dart';
 
 abstract class QueueRemoteDataSource {
-  Future<QueueStatusModel> getQueueStatus({required String studentName});
+  Future<QueueStatusModel> getQueueStatus({
+    String? queueNumber,
+    String? studentName,
+  });
 
   Future<LiveBoardModel> getLiveBoard();
 
@@ -30,10 +33,28 @@ class QueueRemoteDataSourceImpl implements QueueRemoteDataSource {
 
   @override
   Future<QueueStatusModel> getQueueStatus({
-    required String studentName,
+    String? queueNumber,
+    String? studentName,
   }) async {
+    final queryParameters = <String, String>{
+      if (queueNumber != null && queueNumber.trim().isNotEmpty)
+        'queue_number': queueNumber.trim(),
+      if (studentName != null &&
+          studentName.trim().isNotEmpty &&
+          (queueNumber == null || queueNumber.trim().isEmpty))
+        'student_name': studentName.trim(),
+    };
+
+    if (queryParameters.isEmpty) {
+      throw const ServerException(
+        'Queue status request requires a queue number or student name.',
+      );
+    }
+
     final uri = Uri.parse(
-      '$_baseUrl/queue_status.php?student_name=${Uri.encodeComponent(studentName)}',
+      '$_baseUrl/queue_status.php',
+    ).replace(
+      queryParameters: queryParameters,
     );
     final response = await _client
         .get(uri)

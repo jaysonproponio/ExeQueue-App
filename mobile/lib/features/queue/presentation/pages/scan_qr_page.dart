@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
@@ -26,10 +28,8 @@ class _ScanQrView extends StatefulWidget {
 }
 
 class _ScanQrViewState extends State<_ScanQrView>
-    with SingleTickerProviderStateMixin {
-  final MobileScannerController _scannerController = MobileScannerController(
-    detectionSpeed: DetectionSpeed.normal,
-  );
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
+  late MobileScannerController _scannerController;
 
   late final AnimationController _lineController = AnimationController(
     vsync: this,
@@ -37,17 +37,53 @@ class _ScanQrViewState extends State<_ScanQrView>
   )..repeat(reverse: true);
 
   bool _cooldownActive = false;
+  bool _lensChangeInProgress = false;
+  _ScannerLensPreset _selectedLensPreset = _ScannerLensPreset.normal;
 
   bool get _isBusy {
     final state = context.read<JoinQueueCubit>().state;
-    return state is JoinQueueLoading || _cooldownActive;
+    return state is JoinQueueLoading ||
+        _cooldownActive ||
+        _lensChangeInProgress;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _scannerController = _buildScannerController();
+  }
+
+  MobileScannerController _buildScannerController() {
+    return MobileScannerController(
+      androidCameraLensMode: _cameraLensModeForPreset(_selectedLensPreset),
+      detectionSpeed: DetectionSpeed.normal,
+      facing: CameraFacing.back,
+    );
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _lineController.dispose();
-    _scannerController.dispose();
+    unawaited(_scannerController.dispose());
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    switch (state) {
+      case AppLifecycleState.detached:
+        break;
+      case AppLifecycleState.hidden:
+      case AppLifecycleState.paused:
+      case AppLifecycleState.inactive:
+        unawaited(_pauseScanner());
+        break;
+      case AppLifecycleState.resumed:
+        unawaited(_resumeScanner());
+        break;
+    }
   }
 
   void _handleDetection(String qrPayload, {bool manual = false}) {
@@ -90,6 +126,111 @@ class _ScanQrViewState extends State<_ScanQrView>
     );
   }
 
+  Future<void> _pauseScanner() async {
+    final scannerState = _scannerController.value;
+    if (!scannerState.isInitialized || !scannerState.isRunning) {
+      return;
+    }
+
+    try {
+      await _scannerController.stop();
+    } catch (_) {
+      // The scanner can already be stopped while Flutter is transitioning
+      // between lifecycle states.
+    }
+  }
+
+  Future<void> _resumeScanner() async {
+    final scannerState = _scannerController.value;
+    if (scannerState.error != null || scannerState.isRunning) {
+      return;
+    }
+
+    try {
+      await _scannerController.start(cameraDirection: CameraFacing.back);
+    } catch (_) {
+      // The scanner error panel will handle surfacing a recoverable failure.
+    }
+  }
+
+  AndroidCameraLensMode _cameraLensModeForPreset(_ScannerLensPreset preset) {
+    switch (preset) {
+      case _ScannerLensPreset.ultraWide:
+        return AndroidCameraLensMode.ultraWide;
+      case _ScannerLensPreset.normal:
+        return AndroidCameraLensMode.normal;
+    }
+  }
+
+  String _cameraErrorMessage(MobileScannerException error) {
+    switch (error.errorCode) {
+      case MobileScannerErrorCode.permissionDenied:
+        return 'Camera access is blocked. Allow camera permission, then tap Retry Camera.';
+      case MobileScannerErrorCode.unsupported:
+        return 'This device does not expose a supported camera to the scanner.';
+      case MobileScannerErrorCode.controllerAlreadyInitialized:
+      case MobileScannerErrorCode.controllerDisposed:
+      case MobileScannerErrorCode.controllerUninitialized:
+      case MobileScannerErrorCode.genericError:
+        return error.errorDetails?.message?.trim().isNotEmpty == true
+            ? error.errorDetails!.message!
+            : 'Unable to start the camera preview.';
+    }
+  }
+
+  Future<void> _retryScanner() async {
+    if (_lensChangeInProgress) {
+      return;
+    }
+
+    setState(() => _lensChangeInProgress = true);
+
+    try {
+      await _pauseScanner();
+      await _scannerController.setAndroidCameraLensMode(
+        _cameraLensModeForPreset(_selectedLensPreset),
+      );
+      await _scannerController.start(cameraDirection: CameraFacing.back);
+    } catch (_) {
+      if (mounted) {
+        _showSnackBar('Unable to restart the camera preview.');
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _lensChangeInProgress = false);
+      }
+    }
+  }
+
+  Future<void> _switchLensPreset(_ScannerLensPreset preset) async {
+    if (_lensChangeInProgress || _selectedLensPreset == preset) {
+      return;
+    }
+
+    final previousPreset = _selectedLensPreset;
+    setState(() {
+      _selectedLensPreset = preset;
+      _lensChangeInProgress = true;
+    });
+
+    try {
+      await _scannerController.setAndroidCameraLensMode(
+        _cameraLensModeForPreset(preset),
+      );
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() => _selectedLensPreset = previousPreset);
+      _showSnackBar('Unable to switch the camera lens on this device.');
+    } finally {
+      if (mounted) {
+        setState(() => _lensChangeInProgress = false);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
@@ -101,6 +242,7 @@ class _ScanQrViewState extends State<_ScanQrView>
         final assignedQueueNumber = state is JoinQueueSuccess
             ? state.result.queueNumber
             : null;
+        final isScannerOverlayVisible = isProcessing || _lensChangeInProgress;
 
         return ListView(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
@@ -120,6 +262,49 @@ class _ScanQrViewState extends State<_ScanQrView>
                             borderRadius: BorderRadius.circular(28),
                             child: MobileScanner(
                               controller: _scannerController,
+                              placeholderBuilder: (context, child) {
+                                return const ColoredBox(
+                                  color: Color(0xFF10243E),
+                                  child: Center(
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                );
+                              },
+                              errorBuilder: (context, error, child) {
+                                return ColoredBox(
+                                  color: const Color(0xFF10243E),
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(24),
+                                    child: Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: <Widget>[
+                                        const Icon(
+                                          Icons.videocam_off,
+                                          color: Colors.white,
+                                          size: 36,
+                                        ),
+                                        const SizedBox(height: 14),
+                                        Text(
+                                          _cameraErrorMessage(error),
+                                          textAlign: TextAlign.center,
+                                          style: textTheme.bodyMedium?.copyWith(
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 16),
+                                        FilledButton.icon(
+                                          onPressed: _retryScanner,
+                                          icon: const Icon(Icons.refresh),
+                                          label: const Text('Retry Camera'),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              },
                               onDetect: (capture) {
                                 if (capture.barcodes.isEmpty) {
                                   return;
@@ -182,7 +367,7 @@ class _ScanQrViewState extends State<_ScanQrView>
                               ),
                             ),
                           ),
-                          if (isProcessing)
+                          if (isScannerOverlayVisible)
                             Container(
                               decoration: BoxDecoration(
                                 color: const Color(0xAA10243E),
@@ -202,6 +387,74 @@ class _ScanQrViewState extends State<_ScanQrView>
                       'Scan the QR code outside the cashier window to join the queue.',
                       textAlign: TextAlign.center,
                       style: textTheme.bodyLarge,
+                    ),
+                    const SizedBox(height: 16),
+                    ValueListenableBuilder<MobileScannerState>(
+                      valueListenable: _scannerController,
+                      builder: (context, scannerState, _) {
+                        final isCameraReady =
+                            scannerState.isInitialized &&
+                            scannerState.isRunning;
+                        final availableCameras =
+                            scannerState.availableCameras ?? 0;
+
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: <Widget>[
+                            Text(
+                              'Rear Camera Lens',
+                              style: textTheme.titleMedium,
+                            ),
+                            const SizedBox(height: 10),
+                            Wrap(
+                              spacing: 10,
+                              runSpacing: 10,
+                              children: <Widget>[
+                                ChoiceChip(
+                                  label: const Text('Ultra Wide'),
+                                  selected: _selectedLensPreset ==
+                                      _ScannerLensPreset.ultraWide,
+                                  onSelected: isCameraReady
+                                      ? (_) {
+                                          _switchLensPreset(
+                                            _ScannerLensPreset.ultraWide,
+                                          );
+                                        }
+                                      : null,
+                                ),
+                                ChoiceChip(
+                                  label: const Text('Normal'),
+                                  selected: _selectedLensPreset ==
+                                      _ScannerLensPreset.normal,
+                                  onSelected: isCameraReady
+                                      ? (_) {
+                                          _switchLensPreset(
+                                            _ScannerLensPreset.normal,
+                                          );
+                                        }
+                                      : null,
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+                            Text(
+                              isCameraReady
+                                  ? availableCameras >= 3
+                                      ? 'Ultra Wide uses the phone\'s widest '
+                                          'rear camera. Normal uses the '
+                                          'primary rear camera.'
+                                      : 'If this phone only exposes one rear '
+                                          'camera to Android, both options '
+                                          'may look the same.'
+                                  : 'Wait for the camera preview to finish '
+                                      'loading before switching lenses.',
+                              style: textTheme.bodySmall?.copyWith(
+                                color: const Color(0xFF5F6E82),
+                              ),
+                            ),
+                          ],
+                        );
+                      },
                     ),
                     const SizedBox(height: 16),
                     OutlinedButton.icon(
@@ -260,4 +513,9 @@ class _ScanQrViewState extends State<_ScanQrView>
       },
     );
   }
+}
+
+enum _ScannerLensPreset {
+  ultraWide,
+  normal,
 }

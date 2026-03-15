@@ -14,6 +14,7 @@ import 'package:exequeue_mobile/features/queue/domain/usecases/subscribe_to_queu
 import 'package:exequeue_mobile/features/queue/presentation/cubit/join_queue_cubit.dart';
 import 'package:exequeue_mobile/features/queue/presentation/cubit/live_board_cubit.dart';
 import 'package:exequeue_mobile/features/queue/presentation/cubit/queue_status_cubit.dart';
+import 'package:exequeue_mobile/features/queue/presentation/session/queue_session_store.dart';
 
 void registerQueueFeature(GetIt sl) {
   sl.registerLazySingleton<http.Client>(http.Client.new);
@@ -25,6 +26,7 @@ void registerQueueFeature(GetIt sl) {
   sl.registerLazySingleton<QueueNotificationDataSource>(
     () => QueueNotificationDataSourceImpl(),
   );
+  sl.registerLazySingleton<QueueSessionStore>(QueueSessionStore.new);
 
   sl.registerLazySingleton<QueueRepository>(
     () => QueueRepositoryImpl(
@@ -51,7 +53,10 @@ void registerQueueFeature(GetIt sl) {
   );
 
   sl.registerFactory<QueueStatusCubit>(
-    () => QueueStatusCubit(getQueueStatus: sl<GetQueueStatus>()),
+    () => QueueStatusCubit(
+      getQueueStatus: sl<GetQueueStatus>(),
+      queueSessionStore: sl<QueueSessionStore>(),
+    ),
   );
   sl.registerFactory<LiveBoardCubit>(
     () => LiveBoardCubit(getLiveBoard: sl<GetLiveBoard>()),
@@ -59,6 +64,7 @@ void registerQueueFeature(GetIt sl) {
   sl.registerFactory<JoinQueueCubit>(
     () => JoinQueueCubit(
       joinQueueFromQr: sl<JoinQueueFromQr>(),
+      queueSessionStore: sl<QueueSessionStore>(),
       subscribeToQueueTopic: sl<SubscribeToQueueTopic>(),
     ),
   );

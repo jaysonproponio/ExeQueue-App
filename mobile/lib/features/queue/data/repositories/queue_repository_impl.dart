@@ -2,6 +2,7 @@ import 'package:dartz/dartz.dart';
 
 import 'package:exequeue_mobile/core/error/exceptions.dart';
 import 'package:exequeue_mobile/core/error/failures.dart';
+import 'package:exequeue_mobile/core/network/api_config.dart';
 import 'package:exequeue_mobile/features/queue/data/datasources/queue_local_data_source.dart';
 import 'package:exequeue_mobile/features/queue/data/datasources/queue_notification_data_source.dart';
 import 'package:exequeue_mobile/features/queue/data/datasources/queue_remote_data_source.dart';
@@ -25,18 +26,30 @@ class QueueRepositoryImpl implements QueueRepository {
 
   @override
   Future<Either<Failure, QueueStatus>> getQueueStatus({
-    required String studentName,
+    String? queueNumber,
+    String? studentName,
   }) async {
     try {
       final model = await _remoteDataSource.getQueueStatus(
+        queueNumber: queueNumber,
         studentName: studentName,
       );
       return Right<Failure, QueueStatus>(model.toEntity());
-    } on ServerException {
+    } on ServerException catch (error) {
+      if (ApiConfig.hasCustomBaseUrl) {
+        return Left<Failure, QueueStatus>(ServerFailure(error.message));
+      }
+
       return _getFallbackQueueStatus();
     } on ParsingException catch (error) {
       return Left<Failure, QueueStatus>(UnexpectedFailure(error.message));
     } catch (_) {
+      if (ApiConfig.hasCustomBaseUrl) {
+        return const Left<Failure, QueueStatus>(
+          ServerFailure('Unable to connect to the configured backend API.'),
+        );
+      }
+
       return _getFallbackQueueStatus();
     }
   }
@@ -46,11 +59,21 @@ class QueueRepositoryImpl implements QueueRepository {
     try {
       final model = await _remoteDataSource.getLiveBoard();
       return Right<Failure, LiveBoard>(model.toEntity());
-    } on ServerException {
+    } on ServerException catch (error) {
+      if (ApiConfig.hasCustomBaseUrl) {
+        return Left<Failure, LiveBoard>(ServerFailure(error.message));
+      }
+
       return _getFallbackLiveBoard();
     } on ParsingException catch (error) {
       return Left<Failure, LiveBoard>(UnexpectedFailure(error.message));
     } catch (_) {
+      if (ApiConfig.hasCustomBaseUrl) {
+        return const Left<Failure, LiveBoard>(
+          ServerFailure('Unable to connect to the configured backend API.'),
+        );
+      }
+
       return _getFallbackLiveBoard();
     }
   }
@@ -70,11 +93,21 @@ class QueueRepositoryImpl implements QueueRepository {
         manual: manual,
       );
       return Right<Failure, JoinQueueResult>(model.toEntity());
-    } on ServerException {
+    } on ServerException catch (error) {
+      if (ApiConfig.hasCustomBaseUrl) {
+        return Left<Failure, JoinQueueResult>(ServerFailure(error.message));
+      }
+
       return _getFallbackJoinQueueResult();
     } on ParsingException catch (error) {
       return Left<Failure, JoinQueueResult>(UnexpectedFailure(error.message));
     } catch (_) {
+      if (ApiConfig.hasCustomBaseUrl) {
+        return const Left<Failure, JoinQueueResult>(
+          ServerFailure('Unable to connect to the configured backend API.'),
+        );
+      }
+
       return _getFallbackJoinQueueResult();
     }
   }

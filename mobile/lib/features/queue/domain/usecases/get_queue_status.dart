@@ -13,17 +13,22 @@ class GetQueueStatus implements UseCase<QueueStatus, GetQueueStatusParams> {
 
   @override
   Future<Either<Failure, QueueStatus>> call(GetQueueStatusParams params) {
-    return _repository.getQueueStatus(studentName: params.studentName);
+    return _repository.getQueueStatus(
+      queueNumber: params.queueNumber,
+      studentName: params.studentName,
+    );
   }
 }
 
 class GetQueueStatusParams extends Equatable {
   const GetQueueStatusParams({
-    this.studentName = 'Juan Dela Cruz',
+    this.queueNumber,
+    this.studentName,
   });
 
-  final String studentName;
+  final String? queueNumber;
+  final String? studentName;
 
   @override
-  List<Object> get props => <Object>[studentName];
+  List<Object?> get props => <Object?>[queueNumber, studentName];
 }

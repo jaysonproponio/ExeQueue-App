@@ -18,16 +18,13 @@
 
       <nav class="nav-list">
         <a class="nav-item active" href="#dashboard">Dashboard</a>
-        <a class="nav-item" href="#queue-monitor">Queue Monitor</a>
-        <a class="nav-item" href="#queue-management">Queue Management</a>
-        <a class="nav-item" href="#transactions">Transactions</a>
-        <a class="nav-item" href="#reports">Reports</a>
-        <a class="nav-item" href="#settings">Settings</a>
+        <a class="nav-item" href="qr-display.html">QR Display</a>
+        <a class="nav-item" href="queue-display.html">Queue Display</a>
       </nav>
 
       <div class="sidebar-note">
-        Modern cashier controls for live queue handling, notifications, and
-        queue calling.
+        Use the dashboard for cashier actions, then jump directly to the QR
+        station or public queue board from here.
       </div>
     </aside>
 
@@ -47,6 +44,44 @@
         </div>
       </section>
 
+      <section class="overview-grid">
+        <article class="card overview-card">
+          <p class="eyebrow">Connection</p>
+          <strong id="dashboardConnectionStatus" class="overview-value">
+            Connecting
+          </strong>
+          <p class="overview-copy">
+            Dashboard controls and displays are reading from the PHP backend.
+          </p>
+        </article>
+
+        <article class="card overview-card">
+          <p class="eyebrow">Total Queues</p>
+          <strong id="dashboardTotalQueues" class="overview-value">0</strong>
+          <p class="overview-copy">
+            Includes waiting, called, skipped, and completed queue entries.
+          </p>
+        </article>
+
+        <article class="card overview-card">
+          <p class="eyebrow">Last Updated</p>
+          <strong id="dashboardLastUpdated" class="overview-value">
+            Waiting
+          </strong>
+          <p class="overview-copy">
+            The board refreshes automatically and after every cashier action.
+          </p>
+        </article>
+      </section>
+
+      <section
+        id="dashboardMessage"
+        class="status-banner status-banner-info"
+        aria-live="polite"
+      >
+        Loading live queue data...
+      </section>
+
       <section class="hero-grid">
         <article class="card hero-card">
           <div class="card-header">
@@ -57,7 +92,7 @@
             <span class="pill pill-blue">Realtime</span>
           </div>
 
-          <div class="hero-number" id="dashboardNowServing">A021</div>
+          <div class="hero-number" id="dashboardNowServing">A000</div>
 
           <div class="hero-subgrid">
             <div class="subpanel">
@@ -81,7 +116,7 @@
           </div>
         </article>
 
-        <article id="queue-monitor" class="card metrics-card">
+        <article class="card metrics-card">
           <div class="card-header">
             <div>
               <p class="eyebrow">Queue Snapshot</p>
@@ -116,10 +151,10 @@
         </article>
       </section>
 
-      <section id="queue-management" class="card table-card">
+      <section class="card table-card">
         <div class="card-header">
           <div>
-            <p class="eyebrow">Queue Management</p>
+            <p class="eyebrow">Live Queue</p>
             <h3>Queue Table</h3>
           </div>
           <span class="live-chip small">
@@ -138,39 +173,17 @@
                 <th>Status</th>
               </tr>
             </thead>
-            <tbody id="queueTableBody"></tbody>
+            <tbody id="queueTableBody">
+              <tr>
+                <td colspan="4" class="empty-table-cell">
+                  No queue records yet.
+                </td>
+              </tr>
+            </tbody>
           </table>
         </div>
       </section>
 
-      <section class="secondary-grid">
-        <article id="transactions" class="card secondary-card">
-          <p class="eyebrow">Transactions</p>
-          <h3>Cashier Throughput</h3>
-          <p>
-            Completed transactions are logged when the cashier advances from a
-            called queue to the next active queue.
-          </p>
-        </article>
-
-        <article id="reports" class="card secondary-card">
-          <p class="eyebrow">Reports</p>
-          <h3>Queue Analytics</h3>
-          <p>
-            Export average wait time, peak traffic windows, skipped volume, and
-            processing totals from the backend reports layer.
-          </p>
-        </article>
-
-        <article id="settings" class="card secondary-card">
-          <p class="eyebrow">Settings</p>
-          <h3>Voice and Alerts</h3>
-          <p>
-            Configure voice announcements, queue prefixes, inactivity timeout,
-            and Firebase notification credentials.
-          </p>
-        </article>
-      </section>
     </main>
 
     <script src="script.js"></script>

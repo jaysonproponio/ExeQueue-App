@@ -7,7 +7,8 @@ import 'package:exequeue_mobile/features/queue/domain/entities/queue_status.dart
 
 abstract class QueueRepository {
   Future<Either<Failure, QueueStatus>> getQueueStatus({
-    required String studentName,
+    String? queueNumber,
+    String? studentName,
   });
 
   Future<Either<Failure, LiveBoard>> getLiveBoard();

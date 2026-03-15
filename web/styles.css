@@ -148,9 +148,14 @@ a {
 }
 
 .hero-grid,
+.overview-grid,
 .secondary-grid {
   display: grid;
   gap: 24px;
+}
+
+.overview-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .hero-grid {
@@ -172,6 +177,24 @@ a {
 
 .card {
   padding: 24px;
+}
+
+.overview-card {
+  min-height: 156px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.overview-value {
+  font-size: clamp(28px, 5vw, 42px);
+  line-height: 1;
+}
+
+.overview-copy {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.55;
 }
 
 .card-header {
@@ -261,6 +284,13 @@ a {
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
 }
 
+.queue-pill-empty,
+.board-queue-pill-empty {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
 .primary-btn,
 .secondary-btn {
   border: 0;
@@ -319,6 +349,58 @@ a {
   margin-top: 18px;
 }
 
+.status-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+}
+
+.status-banner::before {
+  content: '';
+  width: 12px;
+  height: 12px;
+  flex: 0 0 auto;
+  border-radius: 999px;
+}
+
+.status-banner-info {
+  background: rgba(26, 115, 232, 0.08);
+  color: var(--text);
+}
+
+.status-banner-info::before {
+  background: var(--primary);
+}
+
+.status-banner-success {
+  background: rgba(52, 168, 83, 0.1);
+}
+
+.status-banner-success::before {
+  background: var(--accent);
+}
+
+.status-banner-error {
+  background: rgba(245, 124, 0, 0.12);
+}
+
+.status-banner-error::before {
+  background: #f57c00;
+}
+
+.compact-banner {
+  width: min(100%, 520px);
+  margin: 0 auto 24px;
+}
+
+.centered-banner {
+  justify-self: center;
+}
+
 .table-wrap {
   overflow-x: auto;
 }
@@ -340,6 +422,12 @@ a {
   font-size: 12px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
+}
+
+.empty-table-cell {
+  text-align: center;
+  color: var(--muted);
+  font-weight: 600;
 }
 
 .status-tag {
@@ -405,6 +493,13 @@ a {
 }
 
 .qr-frame canvas {
+  width: min(100%, 360px);
+  height: auto;
+  border-radius: 24px;
+  background: #ffffff;
+}
+
+.qr-frame img {
   width: min(100%, 360px);
   height: auto;
   border-radius: 24px;
@@ -482,6 +577,18 @@ a {
   color: var(--muted);
 }
 
+.primary-btn:disabled,
+.secondary-btn:disabled {
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+  opacity: 0.58;
+}
+
+[hidden] {
+  display: none !important;
+}
+
 @keyframes pulse {
   0% {
     box-shadow: 0 0 0 0 rgba(52, 168, 83, 0.5);
@@ -506,6 +613,7 @@ a {
   }
 
   .hero-grid,
+  .overview-grid,
   .board-grid,
   .secondary-grid,
   .hero-subgrid {

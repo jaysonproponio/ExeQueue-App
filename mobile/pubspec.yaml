@@ -18,7 +18,8 @@ dependencies:
   flutter_bloc: ^9.1.1
   get_it: ^8.0.3
   http: ^1.2.2
-  mobile_scanner: ^5.2.3
+  mobile_scanner:
+    path: packages/mobile_scanner
 
 dev_dependencies:
   bloc_test: ^10.0.0

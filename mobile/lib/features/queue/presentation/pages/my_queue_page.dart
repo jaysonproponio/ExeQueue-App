@@ -32,6 +32,10 @@ class _MyQueueView extends StatelessWidget {
           return const Center(child: CircularProgressIndicator());
         }
 
+        if (state is QueueStatusEmpty) {
+          return const _QueueStatusEmptyView();
+        }
+
         if (state is QueueStatusError) {
           return _QueueStatusErrorView(
             message: state.failure.message,
@@ -80,6 +84,41 @@ class _DemoModeBanner extends StatelessWidget {
                 'Demo queue data is being shown because the backend or database is not configured yet.',
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _QueueStatusEmptyView extends StatelessWidget {
+  const _QueueStatusEmptyView();
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            const Icon(
+              Icons.qr_code_scanner_outlined,
+              size: 40,
+              color: Color(0xFF5F6B7A),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'No active queue yet.',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Scan a QR code or join manually first. Your queue details will appear here after a successful join.',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyMedium,
             ),
           ],
         ),

@@ -16,10 +16,8 @@ class LiveBoardModel extends LiveBoard {
         .toList(growable: false);
 
     return LiveBoardModel(
-      nowServing: json['now_serving'] as String? ?? 'A021',
-      nextQueues: nextQueues.isEmpty
-          ? const <String>['A022', 'A023', 'A024']
-          : nextQueues,
+      nowServing: json['now_serving'] as String? ?? 'A000',
+      nextQueues: nextQueues,
       updatedAt: DateTime.tryParse(json['updated_at'] as String? ?? '') ??
           DateTime.now(),
       isDemo: false,

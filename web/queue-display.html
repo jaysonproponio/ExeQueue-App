@@ -22,13 +22,21 @@
       <section class="board-grid">
         <article class="board-panel board-now">
           <p class="eyebrow">NOW SERVING</p>
-          <div id="displayNowServing" class="board-number">A021</div>
+          <div id="displayNowServing" class="board-number">A000</div>
         </article>
 
         <article class="board-panel board-next">
           <p class="eyebrow">Next Queue</p>
           <div id="displayNextQueue" class="board-next-list"></div>
         </article>
+      </section>
+
+      <section
+        id="displayStatusMessage"
+        class="status-banner status-banner-info compact-banner centered-banner"
+        aria-live="polite"
+      >
+        Waiting for live queue data...
       </section>
 
       <footer class="board-footer">

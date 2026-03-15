@@ -18,6 +18,10 @@ class QueueStatusLoading extends QueueStatusState {
   const QueueStatusLoading();
 }
 
+class QueueStatusEmpty extends QueueStatusState {
+  const QueueStatusEmpty();
+}
+
 class QueueStatusLoaded extends QueueStatusState {
   const QueueStatusLoaded(this.queueStatus);
 
