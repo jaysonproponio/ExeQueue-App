@@ -35,7 +35,9 @@ class QueueRemoteDataSourceImpl implements QueueRemoteDataSource {
     final uri = Uri.parse(
       '$_baseUrl/queue_status.php?student_name=${Uri.encodeComponent(studentName)}',
     );
-    final response = await _client.get(uri);
+    final response = await _client
+        .get(uri)
+        .timeout(ApiConfig.requestTimeout);
 
     if (response.statusCode != 200) {
       throw ServerException(
@@ -48,9 +50,11 @@ class QueueRemoteDataSourceImpl implements QueueRemoteDataSource {
 
   @override
   Future<LiveBoardModel> getLiveBoard() async {
-    final response = await _client.get(
-      Uri.parse('$_baseUrl/current_queue.php'),
-    );
+    final response = await _client
+        .get(
+          Uri.parse('$_baseUrl/current_queue.php'),
+        )
+        .timeout(ApiConfig.requestTimeout);
 
     if (response.statusCode != 200) {
       throw ServerException(
@@ -75,13 +79,15 @@ class QueueRemoteDataSourceImpl implements QueueRemoteDataSource {
       'entry_mode': manual ? 'MANUAL' : 'QR',
     };
 
-    final response = await _client.post(
-      Uri.parse('$_baseUrl/join_queue.php'),
-      headers: const <String, String>{
-        'Content-Type': 'application/json',
-      },
-      body: jsonEncode(requestBody),
-    );
+    final response = await _client
+        .post(
+          Uri.parse('$_baseUrl/join_queue.php'),
+          headers: const <String, String>{
+            'Content-Type': 'application/json',
+          },
+          body: jsonEncode(requestBody),
+        )
+        .timeout(ApiConfig.requestTimeout);
 
     if (response.statusCode != 200 && response.statusCode != 201) {
       throw ServerException(

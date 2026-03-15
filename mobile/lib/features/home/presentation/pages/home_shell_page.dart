@@ -29,12 +29,6 @@ class _HomeShellView extends StatelessWidget {
     'Live Queue Board',
   ];
 
-  static const List<Widget> _screens = <Widget>[
-    MyQueuePage(),
-    ScanQrPage(),
-    LiveBoardPage(),
-  ];
-
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<HomeShellCubit, HomeShellState>(
@@ -49,10 +43,7 @@ class _HomeShellView extends StatelessWidget {
               ),
             ),
           ),
-          body: IndexedStack(
-            index: state.currentIndex,
-            children: _screens,
-          ),
+          body: _buildScreen(state.currentIndex),
           bottomNavigationBar: BottomNavigationBar(
             currentIndex: state.currentIndex,
             onTap: context.read<HomeShellCubit>().changeTab,
@@ -74,5 +65,18 @@ class _HomeShellView extends StatelessWidget {
         );
       },
     );
+  }
+
+  Widget _buildScreen(int currentIndex) {
+    switch (currentIndex) {
+      case 0:
+        return const MyQueuePage();
+      case 1:
+        return const ScanQrPage();
+      case 2:
+        return const LiveBoardPage();
+      default:
+        return const MyQueuePage();
+    }
   }
 }

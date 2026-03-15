@@ -37,6 +37,8 @@ class _LiveBoardView extends StatelessWidget {
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
             children: <Widget>[
+              if (boardData.isDemo) const _LiveBoardDemoBanner(),
+              if (boardData.isDemo) const SizedBox(height: 18),
               LiveBoardCard(boardData: boardData, loading: loading),
               if (errorMessage != null) ...<Widget>[
                 const SizedBox(height: 18),
@@ -73,6 +75,31 @@ class _LiveBoardView extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+class _LiveBoardDemoBanner extends StatelessWidget {
+  const _LiveBoardDemoBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Row(
+          children: <Widget>[
+            const Icon(Icons.info_outline, color: Color(0xFFFB8C00)),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'Live board is using demo data until the backend API is reachable.',
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

@@ -9,6 +9,7 @@ class QueueStatusModel extends QueueStatus {
     required super.estimatedWait,
     required super.status,
     required super.transactionType,
+    required super.isDemo,
   });
 
   factory QueueStatusModel.fromJson(Map<String, dynamic> json) {
@@ -22,6 +23,7 @@ class QueueStatusModel extends QueueStatus {
       status: queueStageFromValue(json['status'] as String?),
       transactionType:
           json['transaction_type'] as String? ?? 'Tuition Payment',
+      isDemo: false,
     );
   }
 
@@ -33,6 +35,7 @@ class QueueStatusModel extends QueueStatus {
       estimatedWait: Duration(minutes: 15),
       status: QueueStage.waiting,
       transactionType: 'Tuition Payment',
+      isDemo: true,
     );
   }
 
@@ -44,6 +47,7 @@ class QueueStatusModel extends QueueStatus {
       estimatedWait: estimatedWait,
       status: status,
       transactionType: transactionType,
+      isDemo: isDemo,
     );
   }
 }

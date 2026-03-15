@@ -47,6 +47,8 @@ class _MyQueueView extends StatelessWidget {
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
             children: <Widget>[
+              if (queueStatus.isDemo) const _DemoModeBanner(),
+              if (queueStatus.isDemo) const SizedBox(height: 18),
               _QueueSummaryCard(queueStatus: queueStatus),
               const SizedBox(height: 18),
               _QueueMetricsGrid(queueStatus: queueStatus),
@@ -56,6 +58,32 @@ class _MyQueueView extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+class _DemoModeBanner extends StatelessWidget {
+  const _DemoModeBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            const Icon(Icons.info_outline, color: Color(0xFFFB8C00)),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'Demo queue data is being shown because the backend or database is not configured yet.',
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

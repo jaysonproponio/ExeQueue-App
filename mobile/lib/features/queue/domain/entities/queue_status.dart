@@ -10,6 +10,7 @@ class QueueStatus extends Equatable {
     required this.estimatedWait,
     required this.status,
     required this.transactionType,
+    this.isDemo = false,
   });
 
   final String queueNumber;
@@ -18,6 +19,7 @@ class QueueStatus extends Equatable {
   final Duration estimatedWait;
   final QueueStage status;
   final String transactionType;
+  final bool isDemo;
 
   double get progressRatio {
     final current = _extractQueueNumber(nowServing).toDouble();
@@ -44,6 +46,7 @@ class QueueStatus extends Equatable {
       estimatedWait: Duration(minutes: 15),
       status: QueueStage.waiting,
       transactionType: 'Tuition Payment',
+      isDemo: true,
     );
   }
 
@@ -55,6 +58,7 @@ class QueueStatus extends Equatable {
         estimatedWait,
         status,
         transactionType,
+        isDemo,
       ];
 }
 

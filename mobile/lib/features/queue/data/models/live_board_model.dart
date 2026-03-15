@@ -5,6 +5,7 @@ class LiveBoardModel extends LiveBoard {
     required super.nowServing,
     required super.nextQueues,
     required super.updatedAt,
+    required super.isDemo,
   });
 
   factory LiveBoardModel.fromJson(Map<String, dynamic> json) {
@@ -21,6 +22,7 @@ class LiveBoardModel extends LiveBoard {
           : nextQueues,
       updatedAt: DateTime.tryParse(json['updated_at'] as String? ?? '') ??
           DateTime.now(),
+      isDemo: false,
     );
   }
 
@@ -29,6 +31,7 @@ class LiveBoardModel extends LiveBoard {
       nowServing: 'A021',
       nextQueues: const <String>['A022', 'A023', 'A024'],
       updatedAt: DateTime.now(),
+      isDemo: true,
     );
   }
 
@@ -37,6 +40,7 @@ class LiveBoardModel extends LiveBoard {
       nowServing: nowServing,
       nextQueues: nextQueues,
       updatedAt: updatedAt,
+      isDemo: isDemo,
     );
   }
 }
