@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ExeQueue Cashier Dashboard</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body class="app-shell">
+    <aside class="sidebar">
+      <div class="brand-block">
+        <div class="brand-mark">E</div>
+        <div>
+          <h1>ExeQueue</h1>
+          <p>Cashier System</p>
+        </div>
+      </div>
+
+      <nav class="nav-list">
+        <a class="nav-item active" href="#dashboard">Dashboard</a>
+        <a class="nav-item" href="#queue-monitor">Queue Monitor</a>
+        <a class="nav-item" href="#queue-management">Queue Management</a>
+        <a class="nav-item" href="#transactions">Transactions</a>
+        <a class="nav-item" href="#reports">Reports</a>
+        <a class="nav-item" href="#settings">Settings</a>
+      </nav>
+
+      <div class="sidebar-note">
+        Modern cashier controls for live queue handling, notifications, and
+        queue calling.
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <section id="dashboard" class="section-heading">
+        <div>
+          <p class="eyebrow">University Cashier Queue</p>
+          <h2>Dashboard</h2>
+          <p class="section-copy">
+            Control queue progression, monitor student flow, and trigger voice
+            announcements from one screen.
+          </p>
+        </div>
+        <div class="live-chip">
+          <span class="live-dot"></span>
+          Live Queue Session
+        </div>
+      </section>
+
+      <section class="hero-grid">
+        <article class="card hero-card">
+          <div class="card-header">
+            <div>
+              <p class="eyebrow">Now Serving</p>
+              <h3>Cashier Window</h3>
+            </div>
+            <span class="pill pill-blue">Realtime</span>
+          </div>
+
+          <div class="hero-number" id="dashboardNowServing">A021</div>
+
+          <div class="hero-subgrid">
+            <div class="subpanel">
+              <p class="eyebrow">Next Queue</p>
+              <div id="dashboardNextQueue" class="queue-pills"></div>
+            </div>
+            <div class="subpanel">
+              <p class="eyebrow">Queue Actions</p>
+              <div class="action-row">
+                <button id="nextQueueButton" class="primary-btn">
+                  Next Queue
+                </button>
+                <button id="skipQueueButton" class="secondary-btn">
+                  Skip Queue
+                </button>
+                <button id="continueSkippedButton" class="secondary-btn">
+                  Continue Skipped Queue
+                </button>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article id="queue-monitor" class="card metrics-card">
+          <div class="card-header">
+            <div>
+              <p class="eyebrow">Queue Snapshot</p>
+              <h3>Monitor</h3>
+            </div>
+            <span class="pill pill-green">Active</span>
+          </div>
+
+          <div class="metric-grid">
+            <div class="metric-tile">
+              <span>Waiting</span>
+              <strong id="waitingCount">0</strong>
+            </div>
+            <div class="metric-tile">
+              <span>Called</span>
+              <strong id="calledCount">0</strong>
+            </div>
+            <div class="metric-tile">
+              <span>Skipped</span>
+              <strong id="skippedCount">0</strong>
+            </div>
+            <div class="metric-tile">
+              <span>Done</span>
+              <strong id="doneCount">0</strong>
+            </div>
+          </div>
+
+          <div class="monitor-copy">
+            Students who are 5 numbers away can be targeted for Firebase Cloud
+            Messaging alerts from the backend.
+          </div>
+        </article>
+      </section>
+
+      <section id="queue-management" class="card table-card">
+        <div class="card-header">
+          <div>
+            <p class="eyebrow">Queue Management</p>
+            <h3>Queue Table</h3>
+          </div>
+          <span class="live-chip small">
+            <span class="live-dot"></span>
+            Synced to live board
+          </span>
+        </div>
+
+        <div class="table-wrap">
+          <table class="queue-table">
+            <thead>
+              <tr>
+                <th>Queue Number</th>
+                <th>Student Name</th>
+                <th>Transaction Type</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="queueTableBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="secondary-grid">
+        <article id="transactions" class="card secondary-card">
+          <p class="eyebrow">Transactions</p>
+          <h3>Cashier Throughput</h3>
+          <p>
+            Completed transactions are logged when the cashier advances from a
+            called queue to the next active queue.
+          </p>
+        </article>
+
+        <article id="reports" class="card secondary-card">
+          <p class="eyebrow">Reports</p>
+          <h3>Queue Analytics</h3>
+          <p>
+            Export average wait time, peak traffic windows, skipped volume, and
+            processing totals from the backend reports layer.
+          </p>
+        </article>
+
+        <article id="settings" class="card secondary-card">
+          <p class="eyebrow">Settings</p>
+          <h3>Voice and Alerts</h3>
+          <p>
+            Configure voice announcements, queue prefixes, inactivity timeout,
+            and Firebase notification credentials.
+          </p>
+        </article>
+      </section>
+    </main>
+
+    <script src="script.js"></script>
+  </body>
+</html>

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ExeQueue Live Queue Board</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body class="display-body board-theme">
+    <main class="board-shell">
+      <header class="board-header">
+        <div>
+          <p class="eyebrow">ExeQueue</p>
+          <h1>CASHIER QUEUE DISPLAY</h1>
+        </div>
+        <div class="live-chip">
+          <span class="live-dot"></span>
+          Live Queue Board
+        </div>
+      </header>
+
+      <section class="board-grid">
+        <article class="board-panel board-now">
+          <p class="eyebrow">NOW SERVING</p>
+          <div id="displayNowServing" class="board-number">A021</div>
+        </article>
+
+        <article class="board-panel board-next">
+          <p class="eyebrow">Next Queue</p>
+          <div id="displayNextQueue" class="board-next-list"></div>
+        </article>
+      </section>
+
+      <footer class="board-footer">
+        Please wait for your number to be called.
+      </footer>
+    </main>
+
+    <script src="script.js"></script>
+  </body>
+</html>

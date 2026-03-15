@@ -1,0 +1,52 @@
+CREATE DATABASE IF NOT EXISTS exequeue
+  CHARACTER SET utf8mb4
+  COLLATE utf8mb4_unicode_ci;
+
+USE exequeue;
+
+CREATE TABLE IF NOT EXISTS queues (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  queue_number VARCHAR(10) NOT NULL UNIQUE,
+  student_name VARCHAR(120) NOT NULL,
+  transaction_type VARCHAR(120) NOT NULL,
+  status ENUM('WAITING', 'CALLED', 'SKIPPED', 'DONE') NOT NULL DEFAULT 'WAITING',
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  KEY idx_queue_status_created (status, created_at)
+);
+
+CREATE TABLE IF NOT EXISTS transactions (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  queue_number VARCHAR(10) NOT NULL,
+  processed_by VARCHAR(120) NOT NULL,
+  completed_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_transactions_queue
+    FOREIGN KEY (queue_number) REFERENCES queues (queue_number)
+    ON UPDATE CASCADE
+    ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS admins (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  username VARCHAR(80) NOT NULL UNIQUE,
+  password VARCHAR(255) NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS notifications (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  queue_number VARCHAR(10) NOT NULL,
+  sent_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_notifications_queue
+    FOREIGN KEY (queue_number) REFERENCES queues (queue_number)
+    ON UPDATE CASCADE
+    ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS logs (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  action VARCHAR(255) NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+INSERT INTO admins (username, password)
+VALUES ('cashier_admin', '$2y$10$replace_with_bcrypt_hash')
+ON DUPLICATE KEY UPDATE username = VALUES(username);
