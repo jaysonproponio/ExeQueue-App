@@ -94,21 +94,17 @@ class QueueRepositoryImpl implements QueueRepository {
       );
       return Right<Failure, JoinQueueResult>(model.toEntity());
     } on ServerException catch (error) {
-      if (ApiConfig.hasCustomBaseUrl) {
-        return Left<Failure, JoinQueueResult>(ServerFailure(error.message));
-      }
-
-      return _getFallbackJoinQueueResult();
+      return Left<Failure, JoinQueueResult>(ServerFailure(error.message));
     } on ParsingException catch (error) {
       return Left<Failure, JoinQueueResult>(UnexpectedFailure(error.message));
     } catch (_) {
-      if (ApiConfig.hasCustomBaseUrl) {
-        return const Left<Failure, JoinQueueResult>(
-          ServerFailure('Unable to connect to the configured backend API.'),
-        );
-      }
-
-      return _getFallbackJoinQueueResult();
+      return Left<Failure, JoinQueueResult>(
+        ServerFailure(
+          ApiConfig.hasCustomBaseUrl
+              ? 'Unable to connect to the configured backend API.'
+              : 'Unable to connect to the backend API. A real queue number can only be issued online.',
+        ),
+      );
     }
   }
 
@@ -158,19 +154,6 @@ class QueueRepositoryImpl implements QueueRepository {
     } catch (_) {
       return const Left<Failure, LiveBoard>(
         CacheFailure('Unable to load live board fallback data.'),
-      );
-    }
-  }
-
-  Future<Either<Failure, JoinQueueResult>> _getFallbackJoinQueueResult() async {
-    try {
-      final model = await _localDataSource.getJoinQueueFallback();
-      return Right<Failure, JoinQueueResult>(model.toEntity());
-    } on CacheException catch (error) {
-      return Left<Failure, JoinQueueResult>(CacheFailure(error.message));
-    } catch (_) {
-      return const Left<Failure, JoinQueueResult>(
-        CacheFailure('Unable to generate a fallback queue number.'),
       );
     }
   }

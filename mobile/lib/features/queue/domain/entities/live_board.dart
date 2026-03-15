@@ -13,6 +13,14 @@ class LiveBoard extends Equatable {
   final DateTime updatedAt;
   final bool isDemo;
 
+  factory LiveBoard.empty() {
+    return LiveBoard(
+      nowServing: 'A000',
+      nextQueues: const <String>[],
+      updatedAt: DateTime.now(),
+    );
+  }
+
   factory LiveBoard.demo() {
     return LiveBoard(
       nowServing: 'A021',

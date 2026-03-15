@@ -513,6 +513,12 @@ a {
   margin-top: 18px;
 }
 
+.token-row strong {
+  max-width: 65%;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
 .current-queue-card strong {
   font-size: 44px;
   color: var(--primary);

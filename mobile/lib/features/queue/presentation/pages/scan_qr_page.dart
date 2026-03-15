@@ -7,6 +7,7 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:exequeue_mobile/core/di/service_locator.dart';
 import 'package:exequeue_mobile/features/queue/presentation/cubit/join_queue_cubit.dart';
 import 'package:exequeue_mobile/features/queue/presentation/cubit/join_queue_state.dart';
+import 'package:exequeue_mobile/features/queue/presentation/session/pending_queue_link_store.dart';
 
 class ScanQrPage extends StatelessWidget {
   const ScanQrPage({super.key});
@@ -29,6 +30,8 @@ class _ScanQrView extends StatefulWidget {
 
 class _ScanQrViewState extends State<_ScanQrView>
     with SingleTickerProviderStateMixin, WidgetsBindingObserver {
+  late final PendingQueueLinkStore _pendingQueueLinkStore =
+      sl<PendingQueueLinkStore>();
   late MobileScannerController _scannerController;
 
   late final AnimationController _lineController = AnimationController(
@@ -52,6 +55,10 @@ class _ScanQrViewState extends State<_ScanQrView>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _scannerController = _buildScannerController();
+    _pendingQueueLinkStore.addListener(_consumePendingPayload);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _consumePendingPayload();
+    });
   }
 
   MobileScannerController _buildScannerController() {
@@ -65,6 +72,7 @@ class _ScanQrViewState extends State<_ScanQrView>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _pendingQueueLinkStore.removeListener(_consumePendingPayload);
     _lineController.dispose();
     unawaited(_scannerController.dispose());
     super.dispose();
@@ -98,6 +106,20 @@ class _ScanQrViewState extends State<_ScanQrView>
         );
   }
 
+  void _consumePendingPayload() {
+    if (!mounted || _isBusy) {
+      return;
+    }
+
+    final payload = _pendingQueueLinkStore.consumePendingPayload();
+    if (payload == null) {
+      return;
+    }
+
+    unawaited(_pauseScanner());
+    _handleDetection(payload);
+  }
+
   void _startCooldown() {
     setState(() => _cooldownActive = true);
     Future<void>.delayed(const Duration(seconds: 2), () {
@@ -112,11 +134,13 @@ class _ScanQrViewState extends State<_ScanQrView>
       _showSnackBar(
         'Queue Number Assigned: ${state.result.queueNumber}',
       );
+      _consumePendingPayload();
       return;
     }
 
     if (state is JoinQueueError) {
       _showSnackBar(state.failure.message);
+      _consumePendingPayload();
     }
   }
 
@@ -239,9 +263,8 @@ class _ScanQrViewState extends State<_ScanQrView>
       listener: _onJoinStateChanged,
       builder: (context, state) {
         final isProcessing = state is JoinQueueLoading;
-        final assignedQueueNumber = state is JoinQueueSuccess
-            ? state.result.queueNumber
-            : null;
+        final assignedQueueNumber =
+            state is JoinQueueSuccess ? state.result.queueNumber : null;
         final isScannerOverlayVisible = isProcessing || _lensChangeInProgress;
 
         return ListView(
@@ -351,8 +374,7 @@ class _ScanQrViewState extends State<_ScanQrView>
                                       height: 4,
                                       decoration: BoxDecoration(
                                         color: const Color(0xFF34A853),
-                                        borderRadius:
-                                            BorderRadius.circular(99),
+                                        borderRadius: BorderRadius.circular(99),
                                         boxShadow: const <BoxShadow>[
                                           BoxShadow(
                                             color: Color(0x6634A853),
@@ -392,8 +414,7 @@ class _ScanQrViewState extends State<_ScanQrView>
                     ValueListenableBuilder<MobileScannerState>(
                       valueListenable: _scannerController,
                       builder: (context, scannerState, _) {
-                        final isCameraReady =
-                            scannerState.isInitialized &&
+                        final isCameraReady = scannerState.isInitialized &&
                             scannerState.isRunning;
                         final availableCameras =
                             scannerState.availableCameras ?? 0;

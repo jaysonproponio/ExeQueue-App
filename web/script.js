@@ -155,23 +155,24 @@ async function refreshQrDisplay() {
   setBannerState(
     'qrStatusMessage',
     'info',
-    'Refreshing queue token from live board state...',
+    'Refreshing secure join link...',
   );
 
   try {
     const board = await fetchCurrentQueue();
-    const qrToken = buildQrToken(board.now_serving);
+    const qrToken = buildQrToken();
+    const qrLink = buildQrLink(qrToken);
 
     appState.board = board;
-    setText('qrTokenValue', qrToken);
+    setText('qrTokenValue', qrLink);
     setText('qrCurrentQueue', board.now_serving);
-    renderQrCode(qrToken);
+    renderQrCode(qrLink);
 
     if (board.queues.length === 0) {
       setBannerState(
         'qrStatusMessage',
         'info',
-        'No active queue yet. QR token is ready for the first student.',
+        'No active queue yet. The join link is ready for the first student.',
       );
     }
   } catch (error) {
@@ -590,10 +591,13 @@ function normalizeStatus(status) {
   return validStatuses.has(normalized) ? normalized : 'WAITING';
 }
 
-function buildQrToken(nowServing) {
-  const queueNumber = String(nowServing || 'A000').trim() || 'A000';
+function buildQrToken() {
   const timestamp = new Date().toISOString().replace(/\D/g, '').slice(-12);
-  return `JOIN-${queueNumber}-${timestamp}`;
+  return `JOIN-LINK-${timestamp}`;
+}
+
+function buildQrLink(qrToken) {
+  return `exequeue://join?qr_token=${encodeURIComponent(qrToken)}`;
 }
 
 function createEmptyBoard() {

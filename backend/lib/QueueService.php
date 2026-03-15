@@ -12,7 +12,7 @@ final class QueueService
     {
         $studentName = trim((string) ($payload['student_name'] ?? ''));
         $transactionType = trim((string) ($payload['transaction_type'] ?? ''));
-        $qrToken = trim((string) ($payload['qr_token'] ?? ''));
+        $qrToken = $this->normalizeQrToken((string) ($payload['qr_token'] ?? ''));
         $entryMode = strtoupper(trim((string) ($payload['entry_mode'] ?? 'QR')));
 
         if ($studentName === '' || $transactionType === '') {
@@ -227,6 +227,40 @@ final class QueueService
         }
 
         return str_starts_with(strtoupper($token), 'JOIN-');
+    }
+
+    private function normalizeQrToken(string $payload): string
+    {
+        $payload = trim($payload);
+        if ($payload === '') {
+            return '';
+        }
+
+        if (str_starts_with(strtoupper($payload), 'JOIN-')) {
+            return $payload;
+        }
+
+        $parts = parse_url($payload);
+        if (!is_array($parts)) {
+            return $payload;
+        }
+
+        $query = [];
+        parse_str((string) ($parts['query'] ?? ''), $query);
+
+        foreach (['qr_token', 'token'] as $key) {
+            $candidate = $query[$key] ?? null;
+            if (!is_string($candidate)) {
+                continue;
+            }
+
+            $candidate = trim($candidate);
+            if ($candidate !== '' && str_starts_with(strtoupper($candidate), 'JOIN-')) {
+                return $candidate;
+            }
+        }
+
+        return $payload;
     }
 
     private function queueSequence(string $queueNumber): int

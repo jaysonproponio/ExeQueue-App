@@ -64,28 +64,44 @@ class LiveBoardCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 14),
-            Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              children: boardData.nextQueues
-                  .map(
-                    (queueNumber) => Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 18,
-                        vertical: 14,
+            if (boardData.nextQueues.isEmpty)
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 18,
+                  vertical: 14,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0x0F1A73E8),
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                child: Text(
+                  'No queued students',
+                  style: textTheme.titleMedium,
+                ),
+              )
+            else
+              Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: boardData.nextQueues
+                    .map(
+                      (queueNumber) => Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 18,
+                          vertical: 14,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0x0F1A73E8),
+                          borderRadius: BorderRadius.circular(18),
+                        ),
+                        child: Text(
+                          queueNumber,
+                          style: textTheme.titleLarge,
+                        ),
                       ),
-                      decoration: BoxDecoration(
-                        color: const Color(0x0F1A73E8),
-                        borderRadius: BorderRadius.circular(18),
-                      ),
-                      child: Text(
-                        queueNumber,
-                        style: textTheme.titleLarge,
-                      ),
-                    ),
-                  )
-                  .toList(growable: false),
-            ),
+                    )
+                    .toList(growable: false),
+              ),
           ],
         ),
       ),

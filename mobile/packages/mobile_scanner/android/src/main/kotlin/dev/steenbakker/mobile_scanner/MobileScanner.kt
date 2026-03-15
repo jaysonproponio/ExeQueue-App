@@ -6,11 +6,13 @@ import android.graphics.Bitmap
 import android.graphics.Matrix
 import android.graphics.Rect
 import android.hardware.camera2.CameraCharacteristics
+import android.hardware.camera2.CameraManager
 import android.hardware.display.DisplayManager
 import android.net.Uri
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import android.util.Size
 import android.view.Surface
 import android.view.WindowManager
@@ -24,6 +26,7 @@ import androidx.camera.core.ImageProxy
 import androidx.camera.core.Preview
 import androidx.camera.core.TorchState
 import androidx.camera.camera2.interop.Camera2CameraInfo
+import androidx.camera.camera2.interop.Camera2Interop
 import androidx.camera.core.resolutionselector.ResolutionSelector
 import androidx.camera.core.resolutionselector.ResolutionStrategy
 import androidx.camera.lifecycle.ProcessCameraProvider
@@ -52,6 +55,13 @@ class MobileScanner(
     private data class RearCameraCandidate(
         val cameraId: String,
         val focalLength: Float,
+        val physicalIds: Set<String>,
+    )
+
+    private data class CameraSelection(
+        val cameraSelector: CameraSelector,
+        val selectedCameraId: String,
+        val physicalCameraId: String? = null,
     )
 
     /// Internal variables
@@ -301,13 +311,26 @@ class MobileScanner(
                 request.provideSurface(surface, executor) { }
             }
 
+            val cameraSelection = resolveCameraSelection(
+                facing,
+                androidCameraLensMode,
+            )
+
             // Build the preview to be shown on the Flutter texture
             val previewBuilder = Preview.Builder()
+            applyPhysicalCameraOverride(
+                previewBuilder,
+                cameraSelection.physicalCameraId,
+            )
             preview = previewBuilder.build().apply { setSurfaceProvider(surfaceProvider) }
 
             // Build the analyzer to be passed on to MLKit
             val analysisBuilder = ImageAnalysis.Builder()
                 .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+            applyPhysicalCameraOverride(
+                analysisBuilder,
+                cameraSelection.physicalCameraId,
+            )
             val displayManager = activity.applicationContext.getSystemService(Context.DISPLAY_SERVICE) as DisplayManager
 
             if (cameraResolution != null) {
@@ -355,15 +378,12 @@ class MobileScanner(
             }
 
             val analysis = analysisBuilder.build().apply { setAnalyzer(executor, captureOutput) }
-            val cameraSelector = resolveCameraSelector(
-                facing,
-                androidCameraLensMode,
-            )
+            logCameraSelection(cameraSelection)
 
             try {
                 camera = cameraProvider?.bindToLifecycle(
                     activity as LifecycleOwner,
-                    cameraSelector,
+                    cameraSelection.cameraSelector,
                     preview,
                     analysis
                 )
@@ -420,84 +440,166 @@ class MobileScanner(
 
     }
 
-    private fun resolveCameraSelector(
+    private fun resolveCameraSelection(
         facing: Int,
         androidCameraLensMode: AndroidCameraLensMode,
-    ): CameraSelector {
+    ): CameraSelection {
         if (facing == 0) {
-            return CameraSelector.DEFAULT_FRONT_CAMERA
+            return CameraSelection(
+                cameraSelector = CameraSelector.DEFAULT_FRONT_CAMERA,
+                selectedCameraId = "front",
+            )
         }
 
-        if (androidCameraLensMode != AndroidCameraLensMode.ULTRA_WIDE) {
-            return CameraSelector.DEFAULT_BACK_CAMERA
+        val availableCameraIds = cameraProvider?.availableCameraInfos
+            ?.mapNotNull(::cameraInfoId)
+            ?.toSet()
+            ?: emptySet()
+        val backCandidates = loadBackCameraCandidates()
+
+        if (backCandidates.isEmpty()) {
+            return CameraSelection(
+                cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA,
+                selectedCameraId = "default_back",
+            )
         }
 
-        val ultraWideCameraId = selectUltraWideBackCameraId(
-            cameraProvider?.availableCameraInfos ?: emptyList(),
-        ) ?: return CameraSelector.DEFAULT_BACK_CAMERA
+        val physicalBackCandidates = backCandidates
+            .filter { it.physicalIds.isEmpty() }
+            .ifEmpty { backCandidates }
 
+        val targetPhysicalCandidate = when (androidCameraLensMode) {
+            AndroidCameraLensMode.NORMAL -> {
+                physicalBackCandidates.maxWithOrNull(
+                    compareBy<RearCameraCandidate> { it.focalLength }
+                        .thenByDescending { it.cameraId.toIntOrNull() ?: -1 },
+                )
+            }
+            AndroidCameraLensMode.ULTRA_WIDE -> {
+                physicalBackCandidates.minWithOrNull(
+                    compareBy<RearCameraCandidate> { it.focalLength }
+                        .thenBy { it.cameraId.toIntOrNull() ?: Int.MAX_VALUE },
+                )
+            }
+        } ?: return CameraSelection(
+            cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA,
+            selectedCameraId = "default_back",
+        )
+
+        val carrierCandidate = backCandidates.firstOrNull { candidate ->
+            candidate.physicalIds.contains(targetPhysicalCandidate.cameraId) &&
+                availableCameraIds.contains(candidate.cameraId)
+        }
+
+        if (carrierCandidate != null) {
+            return CameraSelection(
+                cameraSelector = cameraSelectorForId(carrierCandidate.cameraId),
+                selectedCameraId = carrierCandidate.cameraId,
+                physicalCameraId = targetPhysicalCandidate.cameraId,
+            )
+        }
+
+        if (availableCameraIds.contains(targetPhysicalCandidate.cameraId)) {
+            return CameraSelection(
+                cameraSelector = cameraSelectorForId(targetPhysicalCandidate.cameraId),
+                selectedCameraId = targetPhysicalCandidate.cameraId,
+            )
+        }
+
+        return CameraSelection(
+            cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA,
+            selectedCameraId = "default_back",
+        )
+    }
+
+    private fun loadBackCameraCandidates(): List<RearCameraCandidate> {
+        return try {
+            val cameraManager = activity.applicationContext
+                .getSystemService(Context.CAMERA_SERVICE) as CameraManager
+
+            cameraManager.cameraIdList.mapNotNull { cameraId ->
+                val characteristics = cameraManager.getCameraCharacteristics(cameraId)
+                val lensFacing = characteristics.get(CameraCharacteristics.LENS_FACING)
+                if (lensFacing != CameraCharacteristics.LENS_FACING_BACK) {
+                    return@mapNotNull null
+                }
+
+                val focalLength = characteristics
+                    .get(CameraCharacteristics.LENS_INFO_AVAILABLE_FOCAL_LENGTHS)
+                    ?.minOrNull()
+                    ?: return@mapNotNull null
+
+                val physicalIds = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    characteristics.physicalCameraIds
+                } else {
+                    emptySet()
+                }
+
+                RearCameraCandidate(
+                    cameraId = cameraId,
+                    focalLength = focalLength,
+                    physicalIds = physicalIds,
+                )
+            }
+        } catch (exception: Exception) {
+            emptyList()
+        }
+    }
+
+    private fun cameraSelectorForId(cameraId: String): CameraSelector {
         return CameraSelector.Builder()
             .requireLensFacing(CameraSelector.LENS_FACING_BACK)
             .addCameraFilter { cameraInfos ->
-                val matchingInfos = cameraInfos.filter {
-                    cameraInfoId(it) == ultraWideCameraId
-                }
-
-                if (matchingInfos.isEmpty()) {
-                    cameraInfos
-                } else {
-                    matchingInfos
-                }
+                cameraInfos.filter { cameraInfoId(it) == cameraId }
             }
             .build()
     }
 
-    private fun selectUltraWideBackCameraId(cameraInfos: List<CameraInfo>): String? {
-        val backCandidates = cameraInfos.mapNotNull { cameraInfo ->
-            val lensFacing = Camera2CameraInfo.from(cameraInfo)
-                .getCameraCharacteristic(CameraCharacteristics.LENS_FACING)
+    private fun applyPhysicalCameraOverride(
+        previewBuilder: Preview.Builder,
+        physicalCameraId: String?,
+    ) {
+        if (physicalCameraId == null || Build.VERSION.SDK_INT < Build.VERSION_CODES.P) {
+            return
+        }
 
-            if (lensFacing != CameraCharacteristics.LENS_FACING_BACK) {
-                return@mapNotNull null
+        Camera2Interop.Extender(previewBuilder)
+            .setPhysicalCameraId(physicalCameraId)
+    }
+
+    private fun applyPhysicalCameraOverride(
+        analysisBuilder: ImageAnalysis.Builder,
+        physicalCameraId: String?,
+    ) {
+        if (physicalCameraId == null || Build.VERSION.SDK_INT < Build.VERSION_CODES.P) {
+            return
+        }
+
+        Camera2Interop.Extender(analysisBuilder)
+            .setPhysicalCameraId(physicalCameraId)
+    }
+
+    private fun logCameraSelection(cameraSelection: CameraSelection) {
+        val availableBackCameras = loadBackCameraCandidates()
+            .joinToString { candidate ->
+                val physicalLabel = if (candidate.physicalIds.isEmpty()) {
+                    "physical"
+                } else {
+                    "logical:${candidate.physicalIds.sorted().joinToString(",")}"
+                }
+
+                "${candidate.cameraId}:${candidate.focalLength}:$physicalLabel"
             }
 
-            val cameraId = cameraInfoId(cameraInfo) ?: return@mapNotNull null
-            val focalLength = cameraInfoMinFocalLength(cameraInfo)
-                ?: return@mapNotNull null
-
-            RearCameraCandidate(
-                cameraId = cameraId,
-                focalLength = focalLength,
-            )
-        }.sortedBy { it.focalLength }
-
-        if (backCandidates.size < 2) {
-            return null
-        }
-
-        val widestCandidate = backCandidates.first()
-        val mostZoomedCandidate = backCandidates.last()
-
-        if (abs(widestCandidate.focalLength - mostZoomedCandidate.focalLength) < 0.2f) {
-            return null
-        }
-
-        return widestCandidate.cameraId
+        Log.d(
+            "MobileScanner",
+            "Selected camera=${cameraSelection.selectedCameraId}, physicalOverride=${cameraSelection.physicalCameraId ?: "none"}, availableBackCameras=$availableBackCameras",
+        )
     }
 
     private fun cameraInfoId(cameraInfo: CameraInfo): String? {
         return try {
             Camera2CameraInfo.from(cameraInfo).cameraId
-        } catch (exception: IllegalArgumentException) {
-            null
-        }
-    }
-
-    private fun cameraInfoMinFocalLength(cameraInfo: CameraInfo): Float? {
-        return try {
-            Camera2CameraInfo.from(cameraInfo)
-                .getCameraCharacteristic(CameraCharacteristics.LENS_INFO_AVAILABLE_FOCAL_LENGTHS)
-                ?.minOrNull()
         } catch (exception: IllegalArgumentException) {
             null
         }

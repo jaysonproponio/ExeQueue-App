@@ -26,7 +26,7 @@ class _LiveBoardView extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocBuilder<LiveBoardCubit, LiveBoardState>(
       builder: (context, state) {
-        final boardData = state.boardData ?? LiveBoard.demo();
+        final boardData = state.boardData ?? LiveBoard.empty();
         final loading = state is LiveBoardInitial || state is LiveBoardLoading;
         final errorMessage =
             state is LiveBoardError ? state.failure.message : null;

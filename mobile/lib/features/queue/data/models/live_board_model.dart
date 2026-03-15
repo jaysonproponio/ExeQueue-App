@@ -33,6 +33,15 @@ class LiveBoardModel extends LiveBoard {
     );
   }
 
+  factory LiveBoardModel.empty() {
+    return LiveBoardModel(
+      nowServing: 'A000',
+      nextQueues: const <String>[],
+      updatedAt: DateTime.now(),
+      isDemo: false,
+    );
+  }
+
   LiveBoard toEntity() {
     return LiveBoard(
       nowServing: nowServing,
