@@ -3,7 +3,6 @@ const apiEndpoints = {
   nextQueue: '../backend/api/next_queue.php',
   skipQueue: '../backend/api/skip_queue.php',
   continueQueue: '../backend/api/continue_queue.php',
-  notificationBatch: '../backend/api/send_notification.php',
 };
 
 const appState = {
@@ -227,7 +226,6 @@ async function handleNextQueue() {
     endpoint: apiEndpoints.nextQueue,
     payload: { processed_by: 'cashier_web' },
     successMessage: 'Queue advanced successfully.',
-    sendNotifications: true,
   });
 }
 
@@ -240,7 +238,6 @@ async function handleSkipQueue() {
     endpoint: apiEndpoints.skipQueue,
     payload: {},
     successMessage: 'Active queue skipped successfully.',
-    sendNotifications: true,
   });
 }
 
@@ -273,7 +270,6 @@ async function runDashboardAction({
   endpoint,
   payload,
   successMessage,
-  sendNotifications = false,
 }) {
   appState.actionInFlight = true;
   updateActionButtons();
@@ -292,11 +288,21 @@ async function runDashboardAction({
     appState.board = board;
     renderDashboard(board);
 
-    if (sendNotifications) {
-      sendNotificationBatch();
-    }
-
-    setBannerState('dashboardMessage', 'success', successMessage);
+    const notificationSummaryMessage = buildNotificationSummaryMessage(
+      response.notification_summary,
+    );
+    const variant =
+      response.notification_summary &&
+      response.notification_summary.success === false
+        ? 'warning'
+        : 'success';
+    setBannerState(
+      'dashboardMessage',
+      variant,
+      notificationSummaryMessage
+        ? `${successMessage} ${notificationSummaryMessage}`
+        : successMessage,
+    );
   } catch (error) {
     setBannerState(
       'dashboardMessage',
@@ -309,26 +315,25 @@ async function runDashboardAction({
   }
 }
 
+function buildNotificationSummaryMessage(summary) {
+  if (!summary || typeof summary !== 'object') {
+    return '';
+  }
+
+  const message = String(summary.message || '').trim();
+  if (!message) {
+    return '';
+  }
+
+  return `Notifications: ${message}`;
+}
+
 async function fetchCurrentQueue() {
   const payload = await fetchJson(apiEndpoints.currentQueue);
   const board = normalizeBoard(payload);
   appState.board = board;
   updateActionButtons();
   return board;
-}
-
-async function sendNotificationBatch() {
-  try {
-    await fetchJson(apiEndpoints.notificationBatch, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ threshold: 5 }),
-    });
-  } catch (_) {
-    // Notification payload generation is non-blocking for dashboard actions.
-  }
 }
 
 async function fetchJson(url, options = {}) {
@@ -396,7 +401,7 @@ function renderQueueTable(queues) {
       (item) => `
         <tr>
           <td><strong>${escapeHtml(item.queue_number)}</strong></td>
-          <td>${escapeHtml(item.student_name)}</td>
+          <td>${escapeHtml(item.student_id)}</td>
           <td>${escapeHtml(item.transaction_type)}</td>
           <td>
             <span class="status-tag status-${item.status.toLowerCase()}">
@@ -577,7 +582,9 @@ function normalizeBoard(payload) {
 function normalizeQueue(queue) {
   return {
     queue_number: String(queue.queue_number || 'A000').trim() || 'A000',
-    student_name: String(queue.student_name || 'Unknown Student').trim() || 'Unknown Student',
+    student_id:
+      String(queue.student_id || queue.student_name || '').trim() ||
+      'Non-student',
     transaction_type:
       String(queue.transaction_type || 'Transaction not set').trim() ||
       'Transaction not set',
@@ -639,6 +646,7 @@ function setBannerState(elementId, variant, message) {
   banner.classList.remove(
     'status-banner-info',
     'status-banner-success',
+    'status-banner-warning',
     'status-banner-error',
   );
   banner.classList.add(`status-banner-${variant}`);

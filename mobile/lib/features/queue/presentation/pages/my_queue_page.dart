@@ -15,7 +15,7 @@ class MyQueuePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider<QueueStatusCubit>(
-      create: (_) => sl<QueueStatusCubit>()..loadQueueStatus(),
+      create: (_) => sl<QueueStatusCubit>()..startStatusUpdates(),
       child: const _MyQueueView(),
     );
   }
@@ -39,14 +39,16 @@ class _MyQueueView extends StatelessWidget {
         if (state is QueueStatusError) {
           return _QueueStatusErrorView(
             message: state.failure.message,
-            onRetry: () => context.read<QueueStatusCubit>().loadQueueStatus(),
+            onRetry: () =>
+                context.read<QueueStatusCubit>().refreshQueueStatus(),
           );
         }
 
         final queueStatus = (state as QueueStatusLoaded).queueStatus;
 
         return RefreshIndicator(
-          onRefresh: () => context.read<QueueStatusCubit>().loadQueueStatus(),
+          onRefresh: () =>
+              context.read<QueueStatusCubit>().refreshQueueStatus(),
           child: ListView(
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),

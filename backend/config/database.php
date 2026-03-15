@@ -35,6 +35,68 @@ final class Database
             ],
         );
 
+        self::migrate($pdo, $database);
+
         return $pdo;
+    }
+
+    private static function migrate(PDO $pdo, string $database): void
+    {
+        if (!self::tableExists($pdo, $database, 'queues')) {
+            return;
+        }
+
+        if (!self::columnExists($pdo, $database, 'queues', 'student_id')) {
+            $pdo->exec(
+                'ALTER TABLE queues ADD COLUMN student_id VARCHAR(40) NULL AFTER student_name',
+            );
+        }
+    }
+
+    private static function tableExists(
+        PDO $pdo,
+        string $database,
+        string $tableName,
+    ): bool {
+        $statement = $pdo->prepare(
+            'SELECT 1
+             FROM information_schema.tables
+             WHERE table_schema = :database
+               AND table_name = :table_name
+             LIMIT 1',
+        );
+        $statement->execute(
+            [
+                ':database' => $database,
+                ':table_name' => $tableName,
+            ],
+        );
+
+        return $statement->fetchColumn() !== false;
+    }
+
+    private static function columnExists(
+        PDO $pdo,
+        string $database,
+        string $tableName,
+        string $columnName,
+    ): bool {
+        $statement = $pdo->prepare(
+            'SELECT 1
+             FROM information_schema.columns
+             WHERE table_schema = :database
+               AND table_name = :table_name
+               AND column_name = :column_name
+             LIMIT 1',
+        );
+        $statement->execute(
+            [
+                ':database' => $database,
+                ':table_name' => $tableName,
+                ':column_name' => $columnName,
+            ],
+        );
+
+        return $statement->fetchColumn() !== false;
     }
 }

@@ -40,6 +40,7 @@ class _ScanQrViewState extends State<_ScanQrView>
   )..repeat(reverse: true);
 
   bool _cooldownActive = false;
+  bool _joinFormVisible = false;
   bool _lensChangeInProgress = false;
   _ScannerLensPreset _selectedLensPreset = _ScannerLensPreset.normal;
 
@@ -47,6 +48,7 @@ class _ScanQrViewState extends State<_ScanQrView>
     final state = context.read<JoinQueueCubit>().state;
     return state is JoinQueueLoading ||
         _cooldownActive ||
+        _joinFormVisible ||
         _lensChangeInProgress;
   }
 
@@ -99,11 +101,7 @@ class _ScanQrViewState extends State<_ScanQrView>
       return;
     }
 
-    _startCooldown();
-    context.read<JoinQueueCubit>().joinQueue(
-          qrPayload,
-          manual: manual,
-        );
+    unawaited(_startJoinFlow(qrPayload, manual: manual));
   }
 
   void _consumePendingPayload() {
@@ -116,8 +114,55 @@ class _ScanQrViewState extends State<_ScanQrView>
       return;
     }
 
-    unawaited(_pauseScanner());
     _handleDetection(payload);
+  }
+
+  Future<void> _startJoinFlow(
+    String qrPayload, {
+    required bool manual,
+  }) async {
+    setState(() => _joinFormVisible = true);
+    await _pauseScanner();
+    if (!mounted) {
+      return;
+    }
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (bottomSheetContext) {
+        return _JoinQueueDetailsSheet(
+          manual: manual,
+          onSubmit: (formData) => _submitJoinRequest(
+            qrPayload,
+            formData,
+            manual: manual,
+          ),
+        );
+      },
+    );
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() => _joinFormVisible = false);
+    await _resumeScanner();
+  }
+
+  Future<bool> _submitJoinRequest(
+    String qrPayload,
+    _JoinQueueFormData formData, {
+    required bool manual,
+  }) async {
+    _startCooldown();
+    return context.read<JoinQueueCubit>().joinQueue(
+          qrPayload,
+          studentId: formData.studentId,
+          transactionType: formData.transactionType,
+          manual: manual,
+        );
   }
 
   void _startCooldown() {
@@ -134,13 +179,11 @@ class _ScanQrViewState extends State<_ScanQrView>
       _showSnackBar(
         'Queue Number Assigned: ${state.result.queueNumber}',
       );
-      _consumePendingPayload();
       return;
     }
 
     if (state is JoinQueueError) {
       _showSnackBar(state.failure.message);
-      _consumePendingPayload();
     }
   }
 
@@ -532,6 +575,199 @@ class _ScanQrViewState extends State<_ScanQrView>
           ],
         );
       },
+    );
+  }
+}
+
+class _JoinQueueFormData {
+  const _JoinQueueFormData({
+    required this.studentId,
+    required this.transactionType,
+  });
+
+  final String studentId;
+  final String transactionType;
+}
+
+class _JoinQueueDetailsSheet extends StatefulWidget {
+  const _JoinQueueDetailsSheet({
+    required this.manual,
+    required this.onSubmit,
+  });
+
+  final bool manual;
+  final Future<bool> Function(_JoinQueueFormData formData) onSubmit;
+
+  @override
+  State<_JoinQueueDetailsSheet> createState() => _JoinQueueDetailsSheetState();
+}
+
+class _JoinQueueDetailsSheetState extends State<_JoinQueueDetailsSheet> {
+  static const List<String> _transactionSuggestions = <String>[
+    'Tuition Payment',
+    'Assessment',
+    'Document Request',
+    'Other Cashier Concern',
+  ];
+
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  late final TextEditingController _studentIdController =
+      TextEditingController();
+  late final TextEditingController _transactionTypeController =
+      TextEditingController();
+
+  bool _isSubmitting = false;
+
+  @override
+  void dispose() {
+    _studentIdController.dispose();
+    _transactionTypeController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    final formState = _formKey.currentState;
+    if (formState == null || !formState.validate() || _isSubmitting) {
+      return;
+    }
+
+    setState(() => _isSubmitting = true);
+
+    final joinedSuccessfully = await widget.onSubmit(
+      _JoinQueueFormData(
+        studentId: _studentIdController.text.trim(),
+        transactionType: _transactionTypeController.text.trim(),
+      ),
+    );
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() => _isSubmitting = false);
+
+    if (joinedSuccessfully) {
+      Navigator.of(context).pop();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    final bottomPadding = MediaQuery.of(context).viewInsets.bottom;
+    final title = widget.manual
+        ? 'Manual Queue Request'
+        : 'Complete Queue Request';
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(20, 20, 20, bottomPadding + 20),
+      child: SingleChildScrollView(
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Center(
+                child: Container(
+                  width: 48,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFD6DEE8),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 18),
+              Text(
+                title,
+                style: textTheme.titleLarge,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Provide the request type first. Student ID is optional for visitors or non-students.',
+                style: textTheme.bodyMedium?.copyWith(
+                  color: const Color(0xFF5F6E82),
+                ),
+              ),
+              const SizedBox(height: 20),
+              TextFormField(
+                controller: _studentIdController,
+                enabled: !_isSubmitting,
+                textCapitalization: TextCapitalization.characters,
+                decoration: const InputDecoration(
+                  labelText: 'Student ID',
+                  hintText: '2024-12345',
+                  helperText: 'Optional for non-students',
+                ),
+              ),
+              const SizedBox(height: 14),
+              TextFormField(
+                controller: _transactionTypeController,
+                enabled: !_isSubmitting,
+                textCapitalization: TextCapitalization.words,
+                decoration: const InputDecoration(
+                  labelText: 'Transaction Type',
+                  hintText: 'Tuition Payment',
+                ),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Enter the request transaction type.';
+                  }
+
+                  return null;
+                },
+              ),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: _transactionSuggestions
+                    .map(
+                      (suggestion) => ActionChip(
+                        label: Text(suggestion),
+                        onPressed: _isSubmitting
+                            ? null
+                            : () {
+                                _transactionTypeController.text = suggestion;
+                              },
+                      ),
+                    )
+                    .toList(growable: false),
+              ),
+              const SizedBox(height: 20),
+              Row(
+                children: <Widget>[
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: _isSubmitting
+                          ? null
+                          : () => Navigator.of(context).pop(),
+                      child: const Text('Cancel'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: FilledButton.icon(
+                      onPressed: _isSubmitting ? null : _submit,
+                      icon: _isSubmitting
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.check_circle_outline),
+                      label: Text(
+                        _isSubmitting ? 'Submitting...' : 'Join Queue',
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

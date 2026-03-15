@@ -9,7 +9,7 @@ requireMethod('POST');
 try {
     $payload = requestData();
     $threshold = (int) ($payload['threshold'] ?? 5);
-    jsonResponse($queueService->buildNotificationBatch($threshold));
+    jsonResponse($queueNotificationDispatcher->dispatchThresholdNotifications($threshold));
 } catch (Throwable $exception) {
     jsonResponse(
         [

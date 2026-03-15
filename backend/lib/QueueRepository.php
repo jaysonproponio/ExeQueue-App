@@ -28,17 +28,19 @@ final class QueueRepository
     public function createQueue(
         string $queueNumber,
         string $studentName,
+        ?string $studentId,
         string $transactionType,
         string $status,
     ): array {
         $statement = $this->pdo->prepare(
-            'INSERT INTO queues (queue_number, student_name, transaction_type, status, created_at)
-             VALUES (:queue_number, :student_name, :transaction_type, :status, NOW())',
+            'INSERT INTO queues (queue_number, student_name, student_id, transaction_type, status, created_at)
+             VALUES (:queue_number, :student_name, :student_id, :transaction_type, :status, NOW())',
         );
         $statement->execute(
             [
                 ':queue_number' => $queueNumber,
                 ':student_name' => $studentName,
+                ':student_id' => $studentId,
                 ':transaction_type' => $transactionType,
                 ':status' => $status,
             ],
@@ -161,7 +163,7 @@ final class QueueRepository
     public function getQueueSnapshot(): array
     {
         $statement = $this->pdo->query(
-            "SELECT queue_number, student_name, transaction_type, status, created_at
+            "SELECT queue_number, student_name, student_id, transaction_type, status, created_at
              FROM queues
              ORDER BY FIELD(status, 'CALLED', 'WAITING', 'SKIPPED', 'DONE'), created_at ASC, id ASC",
         );
@@ -189,6 +191,16 @@ final class QueueRepository
             'INSERT INTO notifications (queue_number, sent_at) VALUES (:queue_number, NOW())',
         );
         $statement->execute([':queue_number' => $queueNumber]);
+    }
+
+    public function hasNotificationRecord(string $queueNumber): bool
+    {
+        $statement = $this->pdo->prepare(
+            'SELECT 1 FROM notifications WHERE queue_number = :queue_number LIMIT 1',
+        );
+        $statement->execute([':queue_number' => $queueNumber]);
+
+        return $statement->fetchColumn() !== false;
     }
 
     public function logAction(string $action): void

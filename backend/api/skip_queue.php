@@ -7,7 +7,10 @@ require_once __DIR__ . '/../bootstrap.php';
 requireMethod('POST');
 
 try {
-    jsonResponse($queueService->skipQueue());
+    $response = $queueService->skipQueue();
+    $response['notification_summary'] = $queueNotificationDispatcher
+        ->dispatchThresholdNotifications(5);
+    jsonResponse($response);
 } catch (RuntimeException $exception) {
     jsonResponse(
         [

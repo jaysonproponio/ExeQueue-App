@@ -81,14 +81,14 @@ class QueueRepositoryImpl implements QueueRepository {
   @override
   Future<Either<Failure, JoinQueueResult>> joinQueueFromQr({
     required String qrPayload,
-    required String studentName,
+    required String studentId,
     required String transactionType,
     required bool manual,
   }) async {
     try {
       final model = await _remoteDataSource.joinQueue(
         qrPayload: qrPayload,
-        studentName: studentName,
+        studentId: studentId,
         transactionType: transactionType,
         manual: manual,
       );

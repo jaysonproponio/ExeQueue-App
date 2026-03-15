@@ -16,7 +16,7 @@ class JoinQueueFromQr
   Future<Either<Failure, JoinQueueResult>> call(JoinQueueFromQrParams params) {
     return _repository.joinQueueFromQr(
       qrPayload: params.qrPayload,
-      studentName: params.studentName,
+      studentId: params.studentId,
       transactionType: params.transactionType,
       manual: params.manual,
     );
@@ -26,20 +26,20 @@ class JoinQueueFromQr
 class JoinQueueFromQrParams extends Equatable {
   const JoinQueueFromQrParams({
     required this.qrPayload,
-    this.studentName = 'Juan Dela Cruz',
-    this.transactionType = 'Tuition Payment',
+    required this.transactionType,
+    this.studentId = '',
     this.manual = false,
   });
 
   final String qrPayload;
-  final String studentName;
+  final String studentId;
   final String transactionType;
   final bool manual;
 
   @override
   List<Object> get props => <Object>[
         qrPayload,
-        studentName,
+        studentId,
         transactionType,
         manual,
       ];

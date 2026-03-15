@@ -384,6 +384,15 @@ a {
   background: var(--accent);
 }
 
+.status-banner-warning {
+  background: rgba(245, 124, 0, 0.12);
+  color: #8a4b00;
+}
+
+.status-banner-warning::before {
+  background: #f57c00;
+}
+
 .status-banner-error {
   background: rgba(245, 124, 0, 0.12);
 }

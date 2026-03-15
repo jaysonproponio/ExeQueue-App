@@ -18,7 +18,7 @@ abstract class QueueRemoteDataSource {
 
   Future<JoinQueueResultModel> joinQueue({
     required String qrPayload,
-    required String studentName,
+    required String studentId,
     required String transactionType,
     required bool manual,
   });
@@ -89,13 +89,13 @@ class QueueRemoteDataSourceImpl implements QueueRemoteDataSource {
   @override
   Future<JoinQueueResultModel> joinQueue({
     required String qrPayload,
-    required String studentName,
+    required String studentId,
     required String transactionType,
     required bool manual,
   }) async {
     final requestBody = <String, dynamic>{
       'qr_token': qrPayload,
-      'student_name': studentName,
+      'student_id': studentId,
       'transaction_type': transactionType,
       'entry_mode': manual ? 'MANUAL' : 'QR',
     };
@@ -125,6 +125,6 @@ class QueueRemoteDataSourceImpl implements QueueRemoteDataSource {
       throw const ParsingException();
     }
 
-    return Map<String, dynamic>.from(decoded as Map<dynamic, dynamic>);
+    return Map<String, dynamic>.from(decoded);
   }
 }

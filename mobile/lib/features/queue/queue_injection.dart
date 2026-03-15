@@ -5,6 +5,7 @@ import 'package:exequeue_mobile/features/queue/data/datasources/queue_local_data
 import 'package:exequeue_mobile/features/queue/data/datasources/queue_notification_data_source.dart';
 import 'package:exequeue_mobile/features/queue/data/datasources/queue_remote_data_source.dart';
 import 'package:exequeue_mobile/features/queue/data/repositories/queue_repository_impl.dart';
+import 'package:exequeue_mobile/features/queue/domain/services/queue_foreground_alert_bus.dart';
 import 'package:exequeue_mobile/features/queue/domain/repositories/queue_repository.dart';
 import 'package:exequeue_mobile/features/queue/domain/usecases/get_live_board.dart';
 import 'package:exequeue_mobile/features/queue/domain/usecases/get_queue_status.dart';
@@ -24,8 +25,13 @@ void registerQueueFeature(GetIt sl) {
     () => QueueRemoteDataSourceImpl(client: sl<http.Client>()),
   );
   sl.registerLazySingleton<QueueLocalDataSource>(QueueLocalDataSourceImpl.new);
+  sl.registerLazySingleton<QueueForegroundAlertBus>(
+    QueueForegroundAlertBus.new,
+  );
   sl.registerLazySingleton<QueueNotificationDataSource>(
-    () => QueueNotificationDataSourceImpl(),
+    () => QueueNotificationDataSourceImpl(
+      foregroundAlertBus: sl<QueueForegroundAlertBus>(),
+    ),
   );
   sl.registerLazySingleton<QueueSessionStore>(QueueSessionStore.new);
   sl.registerLazySingleton<PendingQueueLinkStore>(PendingQueueLinkStore.new);
@@ -57,6 +63,7 @@ void registerQueueFeature(GetIt sl) {
   sl.registerFactory<QueueStatusCubit>(
     () => QueueStatusCubit(
       getQueueStatus: sl<GetQueueStatus>(),
+      foregroundAlertBus: sl<QueueForegroundAlertBus>(),
       queueSessionStore: sl<QueueSessionStore>(),
     ),
   );

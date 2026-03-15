@@ -10,13 +10,17 @@ final class QueueService
 
     public function joinQueue(array $payload): array
     {
+        $studentId = strtoupper(trim((string) ($payload['student_id'] ?? '')));
         $studentName = trim((string) ($payload['student_name'] ?? ''));
         $transactionType = trim((string) ($payload['transaction_type'] ?? ''));
         $qrToken = $this->normalizeQrToken((string) ($payload['qr_token'] ?? ''));
         $entryMode = strtoupper(trim((string) ($payload['entry_mode'] ?? 'QR')));
+        $queueLabel = $studentId !== ''
+            ? $studentId
+            : ($studentName !== '' ? $studentName : 'NON-STUDENT');
 
-        if ($studentName === '' || $transactionType === '') {
-            throw new InvalidArgumentException('student_name and transaction_type are required.');
+        if ($transactionType === '') {
+            throw new InvalidArgumentException('transaction_type is required.');
         }
 
         if ($entryMode !== 'MANUAL' && !$this->isValidQrToken($qrToken)) {
@@ -26,7 +30,8 @@ final class QueueService
         $queueNumber = $this->repository->nextQueueNumber();
         $this->repository->createQueue(
             $queueNumber,
-            $studentName,
+            $queueLabel,
+            $studentId !== '' ? $studentId : null,
             $transactionType,
             'WAITING',
         );
@@ -40,6 +45,8 @@ final class QueueService
             'queue_number' => $queueNumber,
             'status' => 'WAITING',
             'entry_mode' => $entryMode,
+            'student_id' => $studentId !== '' ? $studentId : null,
+            'transaction_type' => $transactionType,
         ];
     }
 
@@ -85,6 +92,7 @@ final class QueueService
             'people_ahead' => $peopleAhead,
             'estimated_wait_minutes' => $peopleAhead * 3,
             'status' => $queue['status'],
+            'student_id' => $queue['student_id'] ?? null,
             'transaction_type' => $queue['transaction_type'],
         ];
     }
@@ -187,7 +195,6 @@ final class QueueService
         foreach ($this->repository->getWaitingQueues() as $queue) {
             $distance = $this->queueSequence($queue['queue_number']) - $currentSequence;
             if ($distance > 0 && $distance <= $threshold) {
-                $this->repository->recordNotification($queue['queue_number']);
                 $notifications[] = [
                     'queue_number' => $queue['queue_number'],
                     'topic' => 'queue_' . $queue['queue_number'],

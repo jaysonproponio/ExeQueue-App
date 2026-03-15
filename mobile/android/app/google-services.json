@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "215768268611",
+    "project_id": "exequeue",
+    "storage_bucket": "exequeue.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:215768268611:android:76d112bb6c92f4b99779f6",
+        "android_client_info": {
+          "package_name": "com.example.exequeue_mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC7PuShozwGE2QYJ3Fwq3X3PwY4soRL77U"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -9,7 +9,10 @@ requireMethod('POST');
 try {
     $payload = requestData();
     $processedBy = trim((string) ($payload['processed_by'] ?? 'cashier_1'));
-    jsonResponse($queueService->nextQueue($processedBy));
+    $response = $queueService->nextQueue($processedBy);
+    $response['notification_summary'] = $queueNotificationDispatcher
+        ->dispatchThresholdNotifications(5);
+    jsonResponse($response);
 } catch (Throwable $exception) {
     jsonResponse(
         [

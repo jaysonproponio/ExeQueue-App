@@ -15,7 +15,7 @@ abstract class QueueRepository {
 
   Future<Either<Failure, JoinQueueResult>> joinQueueFromQr({
     required String qrPayload,
-    required String studentName,
+    required String studentId,
     required String transactionType,
     required bool manual,
   });

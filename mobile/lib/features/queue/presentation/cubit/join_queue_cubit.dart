@@ -19,19 +19,24 @@ class JoinQueueCubit extends Cubit<JoinQueueState> {
   final QueueSessionStore _queueSessionStore;
   final SubscribeToQueueTopic _subscribeToQueueTopic;
 
-  Future<void> joinQueue(
+  Future<bool> joinQueue(
     String qrPayload, {
+    required String studentId,
+    required String transactionType,
     bool manual = false,
   }) async {
     if (state is JoinQueueLoading) {
-      return;
+      return false;
     }
 
     emit(const JoinQueueLoading());
+    var joinedSuccessfully = false;
 
     final result = await _joinQueueFromQr(
       JoinQueueFromQrParams(
         qrPayload: qrPayload,
+        studentId: studentId,
+        transactionType: transactionType,
         manual: manual,
       ),
     );
@@ -41,6 +46,7 @@ class JoinQueueCubit extends Cubit<JoinQueueState> {
         emit(JoinQueueError(failure));
       },
       (joinResult) async {
+        joinedSuccessfully = true;
         _queueSessionStore.setActiveQueueNumber(joinResult.queueNumber);
         await _subscribeToQueueTopic(
           SubscribeToQueueTopicParams(queueNumber: joinResult.queueNumber),
@@ -52,5 +58,7 @@ class JoinQueueCubit extends Cubit<JoinQueueState> {
         emit(JoinQueueSuccess(joinResult));
       },
     );
+
+    return joinedSuccessfully;
   }
 }

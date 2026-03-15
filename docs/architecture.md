@@ -37,13 +37,23 @@
 - Trigger point: after each `next_queue` or `skip_queue`, call `send_notification.php`.
 - The service checks all `WAITING` queues that are within 5 sequence numbers of the current `CALLED` queue.
 - For each qualifying queue:
-  - a notification record is inserted into `notifications`
-  - a Firebase topic payload is prepared for `queue_<queue_number>`
+  - the backend sends a Firebase Cloud Messaging topic notification to `queue_<queue_number>`
+  - a notification record is inserted into `notifications` only after a successful send
   - the suggested message is: `Your queue number A021 is approaching. Please prepare to proceed to the cashier.`
 - Client behavior:
   - subscribe to the queue topic after join
   - show a high-priority FCM notification
-  - vibrate the device on receipt
+  - play the Android custom sound resource `queue_alert_sound`
+  - show a local notification while the app is in the foreground
+
+## Firebase setup requirements
+
+- Mobile Android:
+  - add `mobile/android/app/google-services.json`
+  - keep the Android raw sound file at `mobile/android/app/src/main/res/raw/queue_alert_sound.mp3`
+- Backend:
+  - set `GOOGLE_APPLICATION_CREDENTIALS` to a Firebase service-account JSON file path
+  - or set `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, and `FIREBASE_PRIVATE_KEY`
 
 ## Voice announcement
 
