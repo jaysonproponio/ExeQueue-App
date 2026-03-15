@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 class AppTheme {
+  const AppTheme._();
+
   static const Color primaryBlue = Color(0xFF1A73E8);
   static const Color accentGreen = Color(0xFF34A853);
   static const Color background = Color(0xFFF5F7FA);
@@ -9,14 +11,18 @@ class AppTheme {
   static const Color textSecondary = Color(0xFF5F6B7A);
 
   static ThemeData get lightTheme {
+    final colorScheme = ColorScheme.fromSeed(
+      seedColor: primaryBlue,
+    ).copyWith(
+      primary: primaryBlue,
+      secondary: accentGreen,
+      surface: surface,
+    );
+
     final base = ThemeData(
       useMaterial3: true,
+      colorScheme: colorScheme,
       fontFamily: 'Roboto',
-      colorScheme: ColorScheme.fromSeed(seedColor: primaryBlue).copyWith(
-        primary: primaryBlue,
-        secondary: accentGreen,
-        surface: surface,
-      ),
     );
 
     return base.copyWith(
@@ -33,10 +39,10 @@ class AppTheme {
           color: textPrimary,
         ),
       ),
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         color: surface,
         elevation: 0,
-        shadowColor: primaryBlue.withOpacity(0.08),
+        shadowColor: const Color(0x141A73E8),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(24),
         ),

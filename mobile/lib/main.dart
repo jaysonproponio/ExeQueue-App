@@ -1,12 +1,18 @@
+import 'package:bloc/bloc.dart';
 import 'package:flutter/material.dart';
 
-import 'screens/home_shell.dart';
-import 'services/notification_service.dart';
-import 'theme/app_theme.dart';
+import 'package:exequeue_mobile/core/bloc/app_bloc_observer.dart';
+import 'package:exequeue_mobile/core/di/service_locator.dart';
+import 'package:exequeue_mobile/core/theme/app_theme.dart';
+import 'package:exequeue_mobile/core/usecases/usecase.dart';
+import 'package:exequeue_mobile/features/home/presentation/pages/home_shell_page.dart';
+import 'package:exequeue_mobile/features/queue/domain/usecases/initialize_notifications.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await NotificationService.ensureInitialized();
+  Bloc.observer = AppBlocObserver();
+  await initDependencies();
+  await sl<InitializeNotifications>()(const NoParams());
   runApp(const ExeQueueApp());
 }
 
@@ -19,7 +25,7 @@ class ExeQueueApp extends StatelessWidget {
       title: 'ExeQueue',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
-      home: const HomeShell(),
+      home: const HomeShellPage(),
     );
   }
 }
